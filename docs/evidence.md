@@ -16,11 +16,11 @@ This document is an index of actual work and its limits, not a claim of a month 
 | Repository/account inspection | Checked available SDKs and GitHub authentication before selecting the run/publication path | Coordinator's execution history; final publication details recorded below |
 | Parallel agents | Delegated backend/tests, frontend, and documentation as bounded workstreams | AGENTS.md ownership boundaries; session messages |
 | Implementation tools | Wrote source, tests, configuration, and documentation in the shared workspace | Repository files and meaningful commits |
-| Verification and review | To be recorded from actual completed checks below | A configured test is not evidence that it passed |
+| Verification and review | Ran the .NET suite, browser workflows, dependency audits, and an extracted release smoke check | See the validation record and findings below |
 
 ## Model and reasoning-effort honesty
 
-The session identifies the agent as Codex in the GPT-6 family. The exact model variant and reasoning-effort setting were not exposed in a verifiable way in the task context. They are therefore recorded as **not independently available**. Delegated agents inherited the session configuration. No model switching, token-cost optimization, comparative model evaluation, or separate reasoning-effort experiments are claimed.
+The initial build context identified Codex in the GPT-6 family. Its exact model and the inherited agents' variants were unavailable. The resumed checkpoint, verification, and release work exposed **gpt-6.2-sol** as the active model. Reasoning-effort settings were unavailable. There was no documented task-by-task model selection, cost comparison, or reasoning-effort experiment.
 
 Engineering discipline here is visible in task separation, explicit contracts, deterministic runtime decisions, bounded code review, and checks that target temporal and ingestion failure modes. That is not a substitute for evidence of deliberate model selection. If the competition requires exact model/effort records, the owner should attach authentic session exports or screenshots that expose those settings. Do not reconstruct or invent them after the fact.
 
@@ -32,38 +32,47 @@ The product does **not** call a language model at runtime. Missing-event detecti
 | --- | --- | --- | --- |
 | Understand | Framed silent business failures and four user jobs from the owner's brief | [Product brief](product.md) | Personas are hypotheses; no customer interviews were conducted |
 | Plan | Bounded MVP, workflows, acceptance criteria, architecture, and exclusions | [Product brief](product.md), [API contract](api-contract.md), [Architecture and ADRs](architecture.md) | No validated market-size, commercial-readiness, or distributed scalability claim |
-| Build | Implemented API, evaluator, persistence, frontend, and domain demos | `src/`, `frontend/`, commit history | Final completion depends on recorded validation below |
+| Build | Implemented API, evaluator, persistence, frontend, and domain demos | `src/`, `frontend/`, commit history | A single workspace runs in one process |
 | Test | Exercised meaningful rule, ingestion, isolation, recovery, and API behavior | `tests/`, actual check results below | Tests only establish their covered cases |
 | Review | Checked domain semantics, access boundaries, data handling, and publication content | [Security boundaries](security.md), review log below | Not a formal security audit |
 | Document | Wrote operator workflows, architecture decisions, setup, limitations, and authentic evidence | `README.md`, this pack, [Demo guide](demo-guide.md) | Documentation must match observed implementation, not planned features |
-| Ship | Prepared public source and a runnable delivery with a reproducible start path | Delivery record below, repository/release links | Publication and release remain pending until verified; no hosted deployment claim |
+| Ship | Pushed public source with milestone commits and packaged a runnable release | Delivery record below | Release runs locally |
 | Automate | Added CI and repeatable run/build paths | `.github/workflows/`, scripts, container files | A committed workflow is not proof of a completed hosted run |
 
 ## Validation record
 
-The coordinator will replace this pending section with commands and results actually observed. Record operating environment, passed/failed/skipped outcomes, meaningful test counts when available, and the relevant commit or CI run. Do not mark a test passed because its source exists.
+Local verification used Windows, .NET SDK 10.0.404, Node 22.12.0, and Playwright Chromium. The release tag points to the verified application and browser test checkpoint.
 
 | Check | Observed result |
 | --- | --- |
-| .NET build and tests | Pending final verification |
-| Frontend production build | Pending final verification |
-| Browser workflow and responsive review | Pending final verification |
-| Container build/run | Pending availability and final verification |
-| Public repository publication | Pending final verification |
-| Hosted CI | Pending publication and observed run |
+| `dotnet test -c Release` | 32 passed, 0 failed, 0 skipped. Includes deadline boundaries, out-of-order events, application isolation, retry conflicts, persistence, authentication, and recovery. |
+| `npm ci` and `npm run build` | TypeScript and Vite production build passed. npm reported zero known vulnerabilities. |
+| `npm run test:e2e` | 4 Chromium workflows passed. Covers API key entry, all three demos plus recovery, custom application and rule creation plus ingestion, and mobile navigation. |
+| `dotnet package list --include-transitive --vulnerable` | NuGet reported zero known vulnerable packages after updating the SQLite dependency. |
+| Extracted release smoke check | Windows served the packaged dashboard. Running HR created two on-time obligations and one incident with `sessions.terminated` missing. |
+| Container build and protected API | GitHub Actions built the production container and verified readiness, key enforcement, and authenticated state access at the release checkpoint. The local Docker engine was unavailable. |
+| Public repository | GitHub reported public visibility. Application, tests, documentation, and CI were pushed in milestone commits. |
+| Hosted CI | The [release checkpoint run](https://github.com/Shrey-Kashyap/outcomeguard/actions/runs/45373799037) passed the Linux build, backend tests, browser workflows, and container smoke check. |
 
 ## Debug and review log
 
-Fill only from observed findings, with the symptom, correction, and confirming check. Initial contract review identified questions to test: application-scoped IDs, deadline boundaries, out-of-order delivery, paused rules, retained incidents after late evidence, and recovery that refuses missing evidence. These are review targets, not claims of discovered implementation defects.
+- Solution-level testing initially found no projects. Added the app and test projects to the solution and reran the suite.
+- NuGet flagged the bundled SQLite dependency during restore. Updated the Microsoft SQLite package and retested. The subsequent dependency scan was clear.
+- Review found that diagnosis could include events beyond the evaluation clock and could still ask for verification after resolution. Restricted diagnosis to eligible events and recorded the verified closure in the incident.
+- Review identified the cost of scanning all events for each trigger. Grouped events by journey and trigger type and capped the number of obligations.
+- Browser tests initially timed out in the custom-rule workflow. The application field required a combobox selector, and the test needed to provide the required accountable owner. The corrected workflow passed through rule activation and event ingestion.
 
 ## Remaining evidence and product gaps
 
 - No actual operator interviews, usability study, production incident history, or measured customer outcomes.
-- No exact verified model/effort log or model-comparison experiment.
+- No exact model metadata for the initial build or reasoning-effort metadata for either phase.
 - No billing, customer tenancy, SSO/RBAC, managed integrations, outbound notifications, or automatic external remediation.
 - No load-test, high-availability, disaster-recovery, compliance, or formal penetration-test claim.
-- A public source repository and runnable artifact can satisfy the requested delivery path without claiming a hosted production deployment. Record the actual delivery below.
+- The release was smoke tested on Windows. macOS and Linux launchers use the same framework-dependent build. Linux CI runs the app and its browser workflows from source.
 
 ## Delivery record
 
-The coordinator will insert the verified repository URL, final commit, run instructions reference, and any release/CI links after publication. Record inability to publish explicitly if access or execution prevents it. Do not use an unverified URL as evidence. The [submission worksheet](submission.md) keeps the requested links and unresolved owner-supplied details together; it does not submit the entry.
+- [Public repository and milestone history](https://github.com/Shrey-Kashyap/outcomeguard)
+- [Runnable v0.1.0 release](https://github.com/Shrey-Kashyap/outcomeguard/releases/tag/v0.1.0), source checkpoint `ae17c35`
+- [Published ZIP](https://github.com/Shrey-Kashyap/outcomeguard/releases/download/v0.1.0/OutcomeGuard-v0.1.0.zip), SHA-256 `48d6207665d1413b619847016b475c83cf7258bc550be189ff864727f4d508f6`
+- [Setup instructions](../README.md#try-it-locally) and [submission worksheet](submission.md)

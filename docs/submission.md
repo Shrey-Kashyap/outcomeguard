@@ -1,6 +1,6 @@
 # Challenge submission worksheet
 
-This worksheet prepares a reviewable entry. It does not submit the form or claim that publication is complete. Replace pending entries only after checking the actual destination.
+Use these links in the Build with Codex Challenge submission form.
 
 ## Project description
 
@@ -12,11 +12,11 @@ OutcomeGuard detects missing business outcomes even when technical systems appea
 
 | Submission item | Destination | Status |
 | --- | --- | --- |
-| New public repository, source, history, AGENTS.md, and tests | `https://github.com/Shrey-Kashyap/outcomeguard` | Planned; coordinator must verify public publication |
-| Codex Evidence Pack | `https://github.com/Shrey-Kashyap/outcomeguard/blob/main/docs/evidence.md` | Planned public link; local evidence document exists |
-| Live URL or runnable release | `https://github.com/Shrey-Kashyap/outcomeguard/releases/tag/v0.1.0` | Planned release; coordinator must verify tag, release, and runnable assets |
+| GitHub Repository Link | [Shrey-Kashyap/outcomeguard](https://github.com/Shrey-Kashyap/outcomeguard) | Public source, tests, commit history, and AGENTS.md |
+| Codex Evidence Pack Link | [Codex Evidence Pack](https://github.com/Shrey-Kashyap/outcomeguard/blob/main/docs/evidence.md) | Covers all eight challenge stages |
+| Live Project URL / Runnable Release Link | [OutcomeGuard v0.1.0](https://github.com/Shrey-Kashyap/outcomeguard/releases/tag/v0.1.0) | Downloadable app with local start instructions |
 
-The selected delivery route is a runnable release. Do not describe it as a live hosted application unless a deployment is actually completed and checked. If a release URL changes, update this worksheet rather than retaining a guessed link.
+Use **OutcomeGuard** for the project title. The runnable release is the project delivery.
 
 ## Eight lifecycle stages
 
@@ -25,12 +25,10 @@ Use the exact challenge stages supplied by the owner: **Understand, Plan, Build,
 ## Owner details still needed
 
 - Workshop date and resulting submission deadline.
-- Required participant name, contact information, workshop identifiers, or other form-specific fields.
+- Participant name and registered workshop email as provided during registration.
 - Any authentic model/effort screenshots or session exports the owner chooses to provide.
 - Owner review of the final entry and explicit instruction to submit, if submission assistance is desired.
 
 Do not infer these details from a GitHub account or invent workshop dates, model settings, user research, or month-long activity.
 
-## Final review
-
-Confirm that the repository is public, the evidence link is accessible without signing in, and the release instructions work for a clean checkout or downloaded artifact. Include the actual test results and important product limits. Keep the entry accurate about what was built in this session and what remains future work.
+The [submission form](https://docs.google.com/forms/d/e/1FAIpQLScmhNGybHj5MBDIqfYy_u_bZWBR7xec9_VbiInaSVbRYESVjg/viewform) has not been submitted.
