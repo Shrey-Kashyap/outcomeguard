@@ -10,6 +10,7 @@ public sealed class OutcomeService
     private readonly bool _demoEnabled;
     private StoredState _state;
     private const int MaxStoredEvents = 25_000;
+    private const int MaxObligations = 30_000;
 
     public OutcomeService(StateRepository repository, TimeProvider clock, bool demoEnabled)
     {
@@ -88,8 +89,10 @@ public sealed class OutcomeService
         {
             var now = _clock.GetUtcNow();
             var rule = ValidateRule(_state, input, now) with { Id = "preview" };
-            var evaluations = _state.Events.Where(e => e.AppId == rule.AppId && e.Type == rule.TriggerType && e.OccurredAt <= now)
-                .Select(e => InvariantEngine.Evaluate(rule, e, _state.Events, now)).ToArray();
+            var events = _state.Events.Where(e => e.AppId == rule.AppId && e.OccurredAt <= now)
+                .ToLookup(e => e.CorrelationId);
+            var evaluations = events.SelectMany(journey => journey.Where(e => e.Type == rule.TriggerType)
+                .Select(e => InvariantEngine.Evaluate(rule, e, journey, now))).ToArray();
             return new PreviewResult(evaluations,
                 $"{evaluations.Length} historical journeys checked: {evaluations.Count(e => e.Status == "satisfied")} on time, {evaluations.Count(e => e.Status == "violated")} missing outcomes, {evaluations.Count(e => e.Status == "recovered")} late outcomes. No data was changed.");
         }
@@ -203,6 +206,7 @@ public sealed class OutcomeService
         }
         var summary = "All required outcomes have matching stored event evidence. Original deadline history is preserved.";
         incident = incident with { Status = "resolved", ResolvedAt = now,
+            Diagnosis = incident.Diagnosis with { Summary = summary },
             Verification = new Verification(now, evaluation.MatchedEventIds, summary) };
         incident.Timeline.Add(new TimelineEntry(now, "resolved", "Recovery verified", summary));
         state.Incidents[index] = incident;
@@ -217,22 +221,37 @@ public sealed class OutcomeService
 
     private static void EvaluateState(StoredState state, DateTimeOffset now)
     {
+        var triggersByType = state.Events.ToLookup(e => (e.AppId, e.Type));
+        var eventsByJourney = state.Events.Where(e => e.OccurredAt <= now)
+            .ToLookup(e => (e.AppId, e.CorrelationId));
+        var evaluationIndex = state.Evaluations.Select((e, index) => (e.Id, index))
+            .ToDictionary(entry => entry.Id, entry => entry.index);
+        var evaluationsByRule = state.Evaluations.ToLookup(e => e.RuleId);
+        var incidentIndexByEvaluation = state.Incidents.Select((i, index) => (i.EvaluationId, index))
+            .ToDictionary(entry => entry.EvaluationId, entry => entry.index);
+        var capacity = state.Rules.Sum(rule => rule.Enabled
+            ? triggersByType[(rule.AppId, rule.TriggerType)].Count()
+            : evaluationsByRule[rule.Id].Count());
+        if (capacity > MaxObligations)
+            throw new DomainException(409, "This workspace supports up to 30000 obligations. Pause overlapping rules or start a fresh workspace.");
+
         foreach (var rule in state.Rules)
         {
-            var existingIds = state.Evaluations.Where(e => e.RuleId == rule.Id).Select(e => e.TriggerEventId).ToHashSet();
-            var triggers = state.Events.Where(e => e.AppId == rule.AppId && e.Type == rule.TriggerType && e.OccurredAt <= now
-                && (rule.Enabled || existingIds.Contains(e.Id))).ToArray();
+            var triggers = triggersByType[(rule.AppId, rule.TriggerType)].Where(e => e.OccurredAt <= now);
             foreach (var trigger in triggers)
             {
-                var evaluation = InvariantEngine.Evaluate(rule, trigger, state.Events, now);
-                var evalIndex = state.Evaluations.FindIndex(e => e.Id == evaluation.Id);
-                if (evalIndex < 0) state.Evaluations.Add(evaluation); else state.Evaluations[evalIndex] = evaluation;
-                var incidentIndex = state.Incidents.FindIndex(i => i.EvaluationId == evaluation.Id);
+                var id = InvariantEngine.EvaluationId(rule.Id, trigger.Id);
+                var hasEvaluation = evaluationIndex.TryGetValue(id, out var evalIndex);
+                if (!rule.Enabled && !hasEvaluation) continue;
+                var related = eventsByJourney[(rule.AppId, trigger.CorrelationId)];
+                var evaluation = InvariantEngine.Evaluate(rule, trigger, related, now);
+                if (hasEvaluation) state.Evaluations[evalIndex] = evaluation; else state.Evaluations.Add(evaluation);
+                var incidentIndex = incidentIndexByEvaluation.GetValueOrDefault(id, -1);
                 if (incidentIndex < 0 && evaluation.Status is "violated" or "recovered")
                 {
                     var incident = new Incident("inc_" + evaluation.Id[5..], evaluation.Id, rule.Id, rule.Name, rule.AppId,
                         trigger.CorrelationId, rule.Severity, "open", now, null, rule.Owner, evaluation.ImpactAmount,
-                        evaluation.ImpactUnit, evaluation.MissingTypes, InvariantEngine.Diagnose(evaluation, rule, state.Events),
+                        evaluation.ImpactUnit, evaluation.MissingTypes, InvariantEngine.Diagnose(evaluation, rule, related),
                         [new TimelineEntry(evaluation.Deadline, "deadline", "Business deadline", "Required: " + string.Join(", ", rule.ExpectedTypes)),
                          new TimelineEntry(now, "opened", "Missed outcome detected", "The business commitment was not completed within its deadline.")], null);
                     state.Incidents.Add(incident);
@@ -240,12 +259,12 @@ public sealed class OutcomeService
                 }
                 if (incidentIndex >= 0)
                 {
+                    if (state.Incidents[incidentIndex].Status == "resolved") continue;
                     var incident = state.Incidents[incidentIndex] with
                     {
                         MissingTypes = evaluation.MissingTypes,
-                        Diagnosis = InvariantEngine.Diagnose(evaluation, rule, state.Events)
+                        Diagnosis = InvariantEngine.Diagnose(evaluation, rule, related)
                     };
-                    var related = state.Events.Where(e => e.AppId == rule.AppId && e.CorrelationId == trigger.CorrelationId && e.OccurredAt <= now);
                     foreach (var ev in related)
                     {
                         var detail = $"Event {ev.Id}; received {ev.ReceivedAt:O}.";
@@ -280,10 +299,18 @@ public sealed class OutcomeService
     {
         RequireDemo();
         var definition = DemoScenarios.Get(scenario);
-        if (!state.Apps.Any(a => a.Id == definition.App.Id)) state.Apps.Add(definition.App);
+        if (!state.Apps.Any(a => a.Id == definition.App.Id))
+        {
+            if (state.Apps.Count >= 100) throw new DomainException(409, "This MVP supports up to 100 applications.");
+            state.Apps.Add(definition.App);
+        }
         var rule = definition.Rule with { CreatedAt = now };
         var existing = state.Rules.SingleOrDefault(r => r.Id == rule.Id);
-        if (existing is null) state.Rules.Add(rule);
+        if (existing is null)
+        {
+            if (state.Rules.Count >= 200) throw new DomainException(409, "This MVP supports up to 200 rules.");
+            state.Rules.Add(rule);
+        }
         else if (!existing.Enabled) throw new DomainException(409, "Resume this demo's rule before running the scenario again.");
         var run = Guid.NewGuid().ToString("N")[..8];
         var inputs = new List<EventInput>();
