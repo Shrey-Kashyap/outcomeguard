@@ -1,0 +1,77 @@
+name: Build and verify
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Restore backend
+        run: dotnet restore tests/OutcomeGuard.Tests/OutcomeGuard.Tests.csproj
+      - name: Test engine and API
+        run: dotnet test tests/OutcomeGuard.Tests/OutcomeGuard.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=tests.trx"
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Prepare runnable application
+        run: |
+          mkdir -p src/OutcomeGuard.Api/wwwroot
+          cp -R frontend/dist/. src/OutcomeGuard.Api/wwwroot/
+          dotnet publish src/OutcomeGuard.Api -c Release -o artifacts/app
+      - name: Install browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Browser workflow tests
+        working-directory: frontend
+        run: npm run test:e2e
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-evidence
+          path: |
+            tests/**/TestResults/*.trx
+            frontend/test-results/
+            frontend/playwright-report/
+      - name: Upload runnable application
+        uses: actions/upload-artifact@v4
+        with:
+          name: outcomeguard-runnable
+          path: artifacts/app/
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production container
+        run: docker build -t outcomeguard:ci .
+      - name: Verify production authentication and readiness
+        shell: bash
+        run: |
+          key=$(openssl rand -hex 32)
+          echo "::add-mask::$key"
+          docker run -d --name outcomeguard -p 127.0.0.1:5080:8080 -e OutcomeGuard__ApiKey="$key" outcomeguard:ci
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:5080/api/config; then break; fi
+            sleep 1
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5080/api/state)" = "401"
+          curl -fsS -H "X-Api-Key: $key" http://127.0.0.1:5080/api/state
+      - name: Container diagnostics
+        if: failure()
+        run: docker logs outcomeguard || true

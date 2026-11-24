@@ -1,0 +1,14 @@
+.git
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/data
+**/TestResults
+**/test-results
+**/playwright-report
+src/OutcomeGuard.Api/wwwroot
+.env
+.env.*
+artifacts
+
