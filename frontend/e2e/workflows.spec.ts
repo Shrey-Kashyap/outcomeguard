@@ -66,7 +66,7 @@ test('operator can connect an application, author a rule, preview and ingest eve
   await page.getByRole('button', { name: 'Rule studio', exact: true }).click();
   await page.getByRole('button', { name: 'Create a rule', exact: true }).click();
   await page.getByLabel('Rule name', { exact: true }).fill('Dispatch creates tracking');
-  await page.getByLabel('Application', { exact: true }).selectOption({ label: 'Browser test delivery' });
+  await page.getByRole('combobox', { name: 'Application', exact: true }).selectOption({ label: 'Browser test delivery' });
   await page.getByLabel(/^Trigger event/).fill('parcel.dispatched');
   await page.getByLabel(/^Expected event types/).fill('tracking.created');
   await page.getByLabel(/^Time window/).fill('1');
