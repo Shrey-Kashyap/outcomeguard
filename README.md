@@ -19,7 +19,7 @@ These personas are design hypotheses, not claims of completed customer interview
 
 ## Try it locally
 
-Install [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) and [Node.js](https://nodejs.org/) 22.12 or newer (22 LTS recommended).
+For a quick start, see the [runnable release](https://github.com/Shrey-Kashyap/outcomeguard/releases/tag/v0.1.0). To build from source, install [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) and [Node.js](https://nodejs.org/) 22.12 or newer.
 
 ```sh
 git clone https://github.com/Shrey-Kashyap/outcomeguard.git
@@ -55,7 +55,7 @@ See the [demo walkthrough](docs/demo-guide.md) for the full judging path.
 - **Deterministic evaluation:** a background worker evaluates deadlines; app and correlation ID isolate each journey. All required outcome types must be present.
 - **Investigation:** incidents carry business exposure, chronological evidence, observed facts, and unproven diagnostic hypotheses.
 - **Safe recovery:** acknowledgement and verification are audited. Verification checks stored events; it never runs a real refund, access change, or other business action.
-- **Three working demos:** paid orders without fulfillment, registrations without passes, and offboarding without access revocation use the same engine.
+- **Three working demos:** paid orders without shipment, registrations without confirmation, and offboarding with a lingering session use the same engine.
 - **Persistence and deployment:** SQLite, API-key protection, production startup checks, Docker packaging, and GitHub Actions.
 
 ## Engine semantics
@@ -86,13 +86,14 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Open **http://127.0.0.1:5080** and enter that key. Data lives in the `outcome-data` volume. Compose enables synthetic demos for evaluation; set `OUTCOMEGUARD_DEMO_ENABLED=false` to disable them. Production refuses startup without a sufficiently long key. Add TLS at a trusted reverse proxy before remote use.
+Open **http://127.0.0.1:5080** and enter that key. Data lives in the `outcome-data` volume. Compose enables synthetic demos for evaluation. Set `OUTCOMEGUARD_DEMO_ENABLED=false` to disable them. Production requires a random key of at least 24 characters. For remote use, terminate TLS at a trusted reverse proxy and set the app's public origin.
 
 | Configuration | Purpose |
 | --- | --- |
 | `OutcomeGuard__ApiKey` | Shared workspace API key; required in Production |
 | `OutcomeGuard__DemoEnabled` | Enable synthetic demo endpoints; defaults off outside Development |
 | `OutcomeGuard__DatabasePath` | SQLite file path |
+| `OutcomeGuard__PublicOrigin` | Optional exact HTTPS origin for browser requests behind a reverse proxy, such as `https://outcomeguard.example` |
 | `ASPNETCORE_ENVIRONMENT` | `Development` for loopback demo, `Production` for protected operation |
 
 The frontend keeps the entered key only in memory; refresh requires re-entry.
@@ -101,14 +102,9 @@ The frontend keeps the entered key only in memory; refresh requires re-entry.
 
 ```sh
 dotnet test tests/OutcomeGuard.Tests/OutcomeGuard.Tests.csproj -c Release
-cd frontend
-npm ci
-npm run build
-npx playwright install chromium
-npm run test:e2e
 ```
 
-For live frontend development, start the API on port 5080 in Development and run `npm run dev` in `frontend`. Vite proxies `/api` to the backend. Browser tests use an isolated database and server; they do not modify your demo database. CI runs the .NET tests, TypeScript/production build, and browser workflows and uploads the runnable application.
+Build and copy the frontend with the applicable run script above, then stop its server. In `frontend`, run `npx playwright install chromium` and `npm run test:e2e`. Browser tests start their own server and use an isolated database. For live frontend development, start the API on port 5080 in Development and run `npm run dev` in `frontend`. Vite proxies `/api` to the backend. CI runs the .NET tests, production build, browser workflows, and container smoke test.
 
 ## Scope and limitations
 

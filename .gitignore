@@ -3,6 +3,7 @@
 **/obj/
 frontend/node_modules/
 frontend/dist/
+*.tsbuildinfo
 src/OutcomeGuard.Api/wwwroot/
 **/TestResults/
 **/playwright-report/

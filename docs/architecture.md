@@ -17,7 +17,7 @@ flowchart LR
 
 The browser and API are served from the same origin in the packaged app. During frontend development, Vite proxies API requests. The API owns validation, persistence, evaluation, and recovery decisions. The UI displays server state and sends commands; it is not a second evaluator.
 
-The service serializes mutations under one process-local lock. It copies the current workspace, applies a command and evaluation, and commits an atomic serialized snapshot in SQLite before replacing the in-memory state. A rejected batch therefore does not partially mutate the stored workspace. This deliberately simple store is bounded to 25,000 events and 200 user-created rules; queries and evaluations use the in-memory snapshot rather than indexed event tables.
+The service serializes mutations under one process-local lock. It copies the current workspace, applies a command and evaluation, and commits an atomic serialized snapshot in SQLite before replacing the in-memory state. A rejected batch leaves the stored workspace unchanged. The workspace supports up to 25,000 events, 200 rules, and 30,000 obligations. The evaluator groups events by journey and trigger type in memory.
 
 ## Core records
 
