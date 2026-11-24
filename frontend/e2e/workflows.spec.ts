@@ -27,7 +27,7 @@ test('three domains produce real incidents and recovery needs evidence', async (
   for (const name of ['Run commerce scenario', 'Run registration scenario', 'Run offboarding scenario']) {
     await page.getByRole('button', { name: /Demo lab/ }).click();
     await page.getByRole('button', { name, exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('Scenario');
+    await expect(page.getByRole('status')).toContainText('synthetic journeys ingested');
   }
   const headers = { 'X-Api-Key': process.env.E2E_API_KEY! };
   const state = await (await request.get('/api/state', { headers })).json();
@@ -35,7 +35,7 @@ test('three domains produce real incidents and recovery needs evidence', async (
   expect(state.summary.openIncidents).toBe(3);
   expect(state.summary.satisfied).toBe(6);
   await page.getByRole('button', { name: /^Incidents/ }).click();
-  await page.getByRole('button', { name: 'Every paid order gets fulfilled', exact: true }).click();
+  await page.getByRole('button', { name: /^Every paid order gets fulfilled/ }).click();
   await page.getByRole('button', { name: 'Verify recovery', exact: true }).first().click();
   await expect(page.getByRole('status')).toContainText('Still missing');
   await page.getByLabel('Investigation note').fill('Checked the synthetic warehouse failure evidence.');
@@ -67,9 +67,9 @@ test('operator can connect an application, author a rule, preview and ingest eve
   await page.getByRole('button', { name: 'Create a rule', exact: true }).click();
   await page.getByLabel('Rule name', { exact: true }).fill('Dispatch creates tracking');
   await page.getByLabel('Application', { exact: true }).selectOption({ label: 'Browser test delivery' });
-  await page.getByLabel('Trigger event', { exact: true }).fill('parcel.dispatched');
-  await page.getByLabel('Expected event types', { exact: true }).fill('tracking.created');
-  await page.getByLabel('Time window (minutes)', { exact: true }).fill('1');
+  await page.getByLabel(/^Trigger event/).fill('parcel.dispatched');
+  await page.getByLabel(/^Expected event types/).fill('tracking.created');
+  await page.getByLabel(/^Time window/).fill('1');
   await page.getByRole('button', { name: /Preview/ }).click();
   await expect(page.getByText(/historical journeys checked/)).toBeVisible();
   await page.getByRole('button', { name: 'Activate rule', exact: true }).click();

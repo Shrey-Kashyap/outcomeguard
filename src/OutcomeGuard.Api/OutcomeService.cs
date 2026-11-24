@@ -54,7 +54,8 @@ public sealed class OutcomeService
         return new StateView(new Workspace("OutcomeGuard workspace", _demoEnabled ? "demo" : "connected"),
             state.Apps.ToArray(), state.Rules.ToArray(), state.Events.OrderByDescending(e => e.OccurredAt).ToArray(),
             evaluations.OrderByDescending(e => e.TriggeredAt).ToArray(),
-            state.Incidents.OrderByDescending(i => i.OpenedAt).ToArray(),
+            state.Incidents.OrderByDescending(i => i.OpenedAt)
+                .Select(i => i with { IsDemo = state.DemoEvaluationIds.Contains(i.EvaluationId) }).ToArray(),
             new Summary(state.Events.Count, evaluations.Count, evaluations.Count(e => e.Status == "pending"),
                 satisfied, evaluations.Count(e => e.Status == "violated"), evaluations.Count(e => e.Status == "recovered"),
                 state.Incidents.Count(i => i.Status != "resolved"), state.Incidents.Count(i => i.Status == "resolved"),

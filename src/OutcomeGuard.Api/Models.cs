@@ -23,7 +23,10 @@ public record TimelineEntry(DateTimeOffset At, string Kind, string Title, string
 public record Verification(DateTimeOffset VerifiedAt, string[] EvidenceEventIds, string Summary);
 public record Incident(string Id, string EvaluationId, string RuleId, string RuleName, string AppId, string CorrelationId,
     string Severity, string Status, DateTimeOffset OpenedAt, DateTimeOffset? ResolvedAt, string Owner, decimal ImpactAmount,
-    string ImpactUnit, string[] MissingTypes, Diagnosis Diagnosis, List<TimelineEntry> Timeline, Verification? Verification);
+    string ImpactUnit, string[] MissingTypes, Diagnosis Diagnosis, List<TimelineEntry> Timeline, Verification? Verification)
+{
+    public bool IsDemo { get; init; }
+}
 public record Workspace(string Name, string Mode);
 public record ImpactTotal(string Unit, decimal Amount);
 public record Summary(int TotalEvents, int TotalEvaluations, int Pending, int Satisfied, int Violated, int Recovered,
