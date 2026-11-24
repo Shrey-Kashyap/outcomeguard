@@ -70,6 +70,7 @@ test('operator can connect an application, author a rule, preview and ingest eve
   await page.getByLabel(/^Trigger event/).fill('parcel.dispatched');
   await page.getByLabel(/^Expected event types/).fill('tracking.created');
   await page.getByLabel(/^Time window/).fill('1');
+  await page.getByLabel('Accountable owner').fill('Logistics operations');
   await page.getByRole('button', { name: /Preview/ }).click();
   await expect(page.getByText(/historical journeys checked/)).toBeVisible();
   await page.getByRole('button', { name: 'Activate rule', exact: true }).click();
