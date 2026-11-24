@@ -12,9 +12,15 @@ if (!development && apiKey.Length < 24)
 if (apiKey.Length is > 0 and < 24)
     throw new InvalidOperationException("OutcomeGuard__ApiKey must contain at least 24 characters.");
 var demoEnabled = builder.Configuration.GetValue<bool?>("OutcomeGuard:DemoEnabled") ?? development;
+var publicOrigin = builder.Configuration["OutcomeGuard:PublicOrigin"];
+if (publicOrigin is not null && (!Uri.TryCreate(publicOrigin, UriKind.Absolute, out var originUri)
+    || originUri.Scheme != Uri.UriSchemeHttps
+    || !string.Equals(publicOrigin, originUri.GetLeftPart(UriPartial.Authority), StringComparison.Ordinal)))
+    throw new InvalidOperationException("OutcomeGuard__PublicOrigin must be an HTTPS origin without a path or trailing slash.");
 var databasePath = builder.Configuration["OutcomeGuard:DatabasePath"] ?? Path.Combine(builder.Environment.ContentRootPath, "data", "outcomeguard.db");
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 1_048_576);
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
+builder.Services.Configure<RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton(new StateRepository(databasePath));
 builder.Services.AddSingleton(services => new OutcomeService(services.GetRequiredService<StateRepository>(), services.GetRequiredService<TimeProvider>(), demoEnabled));
@@ -49,7 +55,8 @@ app.Use(async (context, next) =>
                 {
                     var sameOrigin = $"{context.Request.Scheme}://{context.Request.Host}";
                     var devOrigin = development && origin is "http://localhost:5173" or "http://127.0.0.1:5173";
-                    if (!string.Equals(origin, sameOrigin, StringComparison.OrdinalIgnoreCase) && !devOrigin)
+                    if (!string.Equals(origin, sameOrigin, StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(origin, publicOrigin, StringComparison.OrdinalIgnoreCase) && !devOrigin)
                         throw new DomainException(403, "Requests from this browser origin are not allowed.");
                 }
                 if (context.Request.Method is "POST" or "PUT" or "PATCH"
@@ -64,9 +71,9 @@ app.Use(async (context, next) =>
         context.Response.StatusCode = ex.StatusCode;
         await context.Response.WriteAsJsonAsync(new { error = ex.Message });
     }
-    catch (BadHttpRequestException)
+    catch (BadHttpRequestException ex)
     {
-        context.Response.StatusCode = 400;
+        context.Response.StatusCode = ex.StatusCode;
         await context.Response.WriteAsJsonAsync(new { error = "The request body is invalid or exceeds the request size limit." });
     }
     catch (JsonException)
