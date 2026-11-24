@@ -1,0 +1,26 @@
+# Build products
+**/bin/
+**/obj/
+frontend/node_modules/
+frontend/dist/
+src/OutcomeGuard.Api/wwwroot/
+**/TestResults/
+**/playwright-report/
+**/test-results/
+artifacts/
+
+# Local state and secrets
+**/data/
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.*
+!.env.example
+*.user
+.vs/
+.idea/
+.DS_Store
+*.log
+*.trx
+
